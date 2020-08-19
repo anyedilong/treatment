@@ -1,0 +1,155 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+	<script src="js/jquery-1.8.0.js"></script>
+	<script src="js/jquery-form.js"></script>
+	<style>
+		.uploadImg{
+			width:156px;
+			height:120px;
+		}
+		#agreementSub{
+			border: none; border-radius: 4px;
+			background: #32B16C; color:#fff;
+			height: 38px;
+			line-height: 38px;padding: 0 20px;
+		}
+		#mainForm{
+			display: none;
+		}
+		#pic{
+			cursor:pointer;
+		}
+	</style>
+</head>
+
+<body>
+	<img src="img/upload.jpg" alt="" class="uploadImg" id="pic">
+	<input id="fileUrl" name="fileUrl" style="display:none;" />
+ 	<form id="mainForm" method="post" enctype="multipart/form-data" class="jsrz_main_information">
+		文件：<input type="file" name="fileData" id="fileData" value="" onchange="PreviewImage()" /><br>
+	    <div >
+	        <button value="提交" id="agreementSub">上传图片</button>
+	    </div>
+	</form>
+</body>
+<script type="text/javascript">
+	var pageSign;
+	var fileNum;
+    $("#pic").click(function () {
+        $("#fileData").click();
+    });
+    function PreviewImage(){
+
+    	if(pageSign == 'systemSetup'){
+    		var f = document.getElementById("fileData").value;
+    		if(f == ""){ 
+    			window.parent.postMessage("1010", '*');
+    			return false;
+    		}else{
+    			if(!/\.(gif|jpg|jpeg|png|GIF|JPG|PNG)$/.test(f)){
+    				//alert("图片类型必须是.gif,jpeg,jpg,png中的一种")
+    				window.parent.postMessage("1011", '*');
+    				return false;
+    			}
+    		}
+    	}
+    	if(pageSign == 'outTransferAdd1' || pageSign == 'outTransferAdd2' 
+    			|| pageSign == 'rotaryTransferAdd1' || pageSign == 'rotaryTransferAdd2'){
+    		var obj = document.getElementById("fileData");
+    		var fileSize = 0;
+            //判断浏览器并且是否opera
+            var isIE = /msie/i.test(navigator.userAgent) && !window.opera;
+            if (isIE && !obj.files) {
+                var filePath = obj.value;
+                //读取本地信息
+                var fileSystem = new ActiveXObject("Scripting.FileSystemObject");
+                var file = fileSystem.GetFile(filePath);
+                fileSize = file.Size;
+            } else {
+                fileSize = obj.files[0].size;
+            }
+            //转化为Int值
+            fileSize = Math.round(fileSize / 1024/1024 * 100) / 100;
+            if (fileSize > 1024) {
+            	window.parent.postMessage("1011", '*');
+                return false;
+            }
+
+			console.log(fileNum);
+            if(fileNum >= 5){
+            	window.parent.postMessage("1012", '*');
+                return false;
+            }
+    	}
+    	// window.parent.postMessage("1013", '*');
+        $('#mainForm').ajaxSubmit({//ajax方式提交表单
+            url: '/treatment/commontools/saveFile',
+            async : false,
+            type: 'POST',
+            success: function (data) {
+            	//debugger;
+				// window.parent.postMessage("1014", '*');
+            	if(data.indexOf("treat") != -1){
+            		if(pageSign == 'systemSetup'){
+            			var data = data.split(",");
+            			document.getElementById("pic").src = data[0];
+            			window.parent.postMessage(data[0], '*');
+            		}else if(pageSign == 'outTransferAdd1' || pageSign == 'outTransferAdd2' 
+            				|| pageSign == 'rotaryTransferAdd1' || pageSign == 'rotaryTransferAdd2'){
+						window.parent.postMessage(data+","+pageSign, '*');
+            		}
+            	}else{
+					window.parent.postMessage("1000", '*');
+				}
+            },
+            error:function(jqXHR, textStatus, errorThrown){
+				window.parent.postMessage("1000", '*');
+                // debugger;
+            }
+        }); 
+        return false;
+	}
+    if (window.attachEvent){
+        window.attachEvent('on'+'message', function(e) {
+            if(e.data.indexOf('reset') != -1){
+            	document.getElementById("pic").src = "img/upload.jpg";
+            }else if(e.data.indexOf('systemSetup') != -1){
+            	var arr = e.data.split(",");
+            	pageSign = arr[0];
+            	if(arr[1] == null || arr[1] == '' || arr[1] == undefined || arr[1] == 'undefined'){
+            		document.getElementById("pic").src = "img/upload.jpg";
+            	}else{
+            		document.getElementById("pic").src = arr[1];
+            	}
+            }else if(e.data.indexOf('outTransferAdd1') != -1 || e.data.indexOf('outTransferAdd2') != -1
+            		|| e.data.indexOf('rotaryTransferAdd1') != -1 || e.data.indexOf('rotaryTransferAdd2') != -1){
+            	var arr = e.data.split(",");
+            	pageSign = arr[0];
+            	fileNum = arr[1];
+            }
+        }, false);
+    } else if (window.addEventListener) {
+        window.addEventListener('message', function(e) {
+            if(e.data.indexOf('reset') != -1){
+            	document.getElementById("pic").src = "img/upload.jpg";
+            }else if(e.data.indexOf('systemSetup') != -1){
+            	var arr = e.data.split(",");
+            	pageSign = arr[0];
+            	if(arr[1] == null || arr[1] == '' || arr[1] == undefined || arr[1] == 'undefined'){
+            		document.getElementById("pic").src = "img/upload.jpg";
+            	}else{
+            		document.getElementById("pic").src = arr[1];
+            	}
+            }else if(e.data.indexOf('outTransferAdd1') != -1 || e.data.indexOf('outTransferAdd2') != -1
+            		|| e.data.indexOf('rotaryTransferAdd1') != -1 || e.data.indexOf('rotaryTransferAdd2') != -1){
+            	var arr = e.data.split(",");
+            	pageSign = arr[0];
+            	fileNum = (arr[1] == null || arr[1] == "") ? 0 : arr[1];
+            }
+        }, false);
+    }
+</script>
+</html>
